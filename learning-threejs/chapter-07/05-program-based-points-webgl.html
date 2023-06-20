@@ -1,0 +1,207 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/TrackballControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(0, 0, 100);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    scene.add(ambientLight);
+
+    let vertices = [];
+    let colors = [];
+
+    //生成一万个点的位置
+    for (var i = 0; i < 100000; i++) {
+        //THREE.Math.randFloatSpread 在区间内随机浮动* - 范围 / 2 *到* 范围 / 2 *内随机取值。
+        let x = THREE.MathUtils.randFloatSpread(1000);
+        let y = THREE.MathUtils.randFloatSpread(1000);
+        let z = THREE.MathUtils.randFloatSpread(1000);
+        vertices.push(x, y, z);
+
+        let r = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+        let g = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+        let b = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+
+        colors.push(r, g, b);
+    }
+
+    var starsGeometry = new THREE.BufferGeometry();
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    starsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+    var starsMaterial = new THREE.PointsMaterial({
+        vertexColors: true,
+        size: 4,
+        transparent: true,
+        opacity: 0.1,
+        map: createGhostTexture(),
+    });
+    var starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+
+    var controls = new function () {
+        this.rotationSpeed = 0.002;
+    };
+
+    function createGhostTexture() {
+        var canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+
+        var ctx = canvas.getContext('2d');
+        // the body
+        ctx.translate(-81, -84);
+
+        ctx.fillStyle = "orange";
+        ctx.beginPath();
+        ctx.moveTo(83, 116);
+        ctx.lineTo(83, 102);
+        ctx.bezierCurveTo(83, 94, 89, 88, 97, 88);
+        ctx.bezierCurveTo(105, 88, 111, 94, 111, 102);
+        ctx.lineTo(111, 116);
+        ctx.lineTo(106.333, 111.333);
+        ctx.lineTo(101.666, 116);
+        ctx.lineTo(97, 111.333);
+        ctx.lineTo(92.333, 116);
+        ctx.lineTo(87.666, 111.333);
+        ctx.lineTo(83, 116);
+        ctx.fill();
+
+        // the eyes
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(91, 96);
+        ctx.bezierCurveTo(88, 96, 87, 99, 87, 101);
+        ctx.bezierCurveTo(87, 103, 88, 106, 91, 106);
+        ctx.bezierCurveTo(94, 106, 95, 103, 95, 101);
+        ctx.bezierCurveTo(95, 99, 94, 96, 91, 96);
+        ctx.moveTo(103, 96);
+        ctx.bezierCurveTo(100, 96, 99, 99, 99, 101);
+        ctx.bezierCurveTo(99, 103, 100, 106, 103, 106);
+        ctx.bezierCurveTo(106, 106, 107, 103, 107, 101);
+        ctx.bezierCurveTo(107, 99, 106, 96, 103, 96);
+        ctx.fill();
+
+        // the pupils
+        ctx.fillStyle = "blue";
+        ctx.beginPath();
+        ctx.arc(101, 102, 2, 0, Math.PI * 2, true);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(89, 102, 2, 0, Math.PI * 2, true);
+        ctx.fill();
+
+
+        var texture = new THREE.Texture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+
+        gui.add(starsMaterial, 'size', 1, 10);
+        gui.add(starsMaterial, 'transparent');
+        gui.add(starsMaterial, 'opacity', 0, 1);
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.TrackballControls(camera, renderer.domElement);
+    // 是否开启当前的控制器 默认值为true
+    control.enabled = true;
+
+    // 设置当前控制器的焦点 默认为原点位置
+    control.target = new THREE.Vector3();
+
+    control.rotateSpeed = 3.0; //控制相机旋转速度
+    control.zoomSpeed = 1.2; //控制相机缩放速度
+    control.panSpeed = 0.3; //控制相机移动速度
+
+    control.noRotate = false; //关闭相机旋转 默认false
+    control.noZoom = false; //关闭相机缩放 默认false
+    control.noPan = false; //关闭相机移动 默认false
+
+    control.staticMoving = false; //关闭惯性拖拽 默认值false
+    control.dynamicDampingFactor = 0.2; //设置惯性拖拽的阻力 默认值是0.2
+
+    // 控制器控制相机可移动的距离焦点的最远距离和最近距离 默认值是0到无限远的距离
+    control.minDistance = 0;
+    control.maxDistance = Infinity;
+
+    let clock = new THREE.Clock();
+
+    function render() {
+        stats.update();
+
+        starField.rotation.x += controls.rotationSpeed;
+        starField.rotation.y += controls.rotationSpeed;
+        starField.rotation.z += controls.rotationSpeed;
+
+        control.update(clock.getDelta());
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

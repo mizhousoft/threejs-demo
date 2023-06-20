@@ -1,0 +1,153 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/OrbitControls.js"></script>
+    <script src="../js/SceneUtils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(40, 60, -30);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(60, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0xeeeeee));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    ambientLight.position.y = 20;
+    ambientLight.position.z = 40;
+    scene.add(ambientLight);
+
+    var spotLight = new THREE.SpotLight({ color: 0xffffff });
+    spotLight.position.x = 50;
+    spotLight.position.y = 180;
+    spotLight.position.z = 100;
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.set(2048, 2048);
+    spotLight.intensity = 0.6;
+    scene.add(spotLight);
+
+    let circleGeometry = new THREE.CircleGeometry(10, 32);
+    let circleMaterial = new THREE.MeshBasicMaterial({ color: 0x4C431B });
+    circleMaterial.side = THREE.DoubleSide;
+    let wirefirmeMaterial = new THREE.MeshBasicMaterial();
+    wirefirmeMaterial.wireframe = true;
+    let circleMesh = THREE.SceneUtils.createMultiMaterialObject(circleGeometry, [circleMaterial, wirefirmeMaterial]);
+    circleMesh.position.y = 10;
+    circleMesh.position.x = 5;
+    circleMesh.rotation.x = -0.5 * Math.PI;
+
+    scene.add(circleMesh);
+
+    var controls = new function () {
+        this.rotationSpeed = 0.02;
+
+        this.radius = circleGeometry.parameters.radius;
+        this.segments = circleGeometry.parameters.segments;
+        this.thetaStart = circleGeometry.parameters.thetaStart;
+        this.thetaLength = circleGeometry.parameters.thetaLength;
+    };
+
+    function renew() {
+        let geometry = new THREE.CircleGeometry(controls.radius, controls.segments, controls.thetaStart, controls.thetaLength);
+        let material1 = new THREE.MeshNormalMaterial({ color: 0x4C431B });
+        material1.side = THREE.DoubleSide;
+        let material2 = new THREE.MeshBasicMaterial();
+        material2.wireframe = true;
+        let mesh = THREE.SceneUtils.createMultiMaterialObject(geometry, [material1, material2]);
+        mesh.position.y = 10;
+        mesh.position.x = 5;
+        mesh.rotation.x = -0.5 * Math.PI;
+
+        scene.remove(circleMesh);
+
+        circleMesh = mesh;
+        scene.add(circleMesh);
+    }
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+
+        gui.add(controls, 'radius', 5, 40, 1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'segments', 5, 40, 1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'thetaStart', 0, 2 * Math.PI, 0.1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'thetaLength', 0, 2 * Math.PI, 0.1).onChange(function (e) {
+            renew();
+        });
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.OrbitControls(camera, renderer.domElement);
+
+    function render() {
+        stats.update();
+
+        circleMesh.rotation.y += controls.rotationSpeed;
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

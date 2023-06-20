@@ -1,0 +1,162 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/FirstPersonControls.js"></script>
+    <script src="../js/OBJLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(-170, 30, 140);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({
+        antialias: true, logarithmicDepthBuffer: true,
+    });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.DevicePixelRatio);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight(0x353535, 1);
+    scene.add(ambientLight);
+
+    var spotLight = new THREE.SpotLight({ color: 0xffffff });
+    spotLight.position.x = -90;
+    spotLight.position.y = 60;
+    spotLight.position.z = 40;
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.set(2048, 2048);
+    spotLight.intensity = 0.8;
+    scene.add(spotLight);
+
+    let loader = new THREE.OBJLoader();
+    loader.load('../assets/models/city/city.obj', function (obj) {
+        console.log(obj)
+
+        obj.children.forEach(child => {
+            if (child.isMesh) {
+                if (child.material instanceof Array) {
+                    child.material.forEach(mat => {
+                        if (mat.name.indexOf("building") == 0) {
+                            mat.color = new THREE.Color(Math.random() * 0xffffff);
+                            mat.transparent = true;
+                            mat.opacity = 0.6;
+                            mat.needsUpdate = true;
+                        }
+                        else if (mat.name.indexOf("street") == 0) {
+                            mat.color = new THREE.Color(0xff0000);
+                            mat.needsUpdate = true;
+                        }
+                        else if (mat.name.indexOf("lamp") == 0) {
+                            mat.color = new THREE.Color(0x00ff00);
+                            mat.needsUpdate = true;
+                        }
+                        else {
+                            mat.color = new THREE.Color(Math.random() * 0xffffff);
+                            mat.needsUpdate = true;
+                        }
+                    });
+                }
+                else {
+                    if (child.material.name.indexOf("building") == 0) {
+
+                        child.material.color = new THREE.Color(Math.random() * 0xffffff);
+                        child.material.transparent = true;
+                        child.material.opacity = 0.6;
+                        child.material.needsUpdate = true;
+                    }
+                    else {
+                        child.material.color = new THREE.Color(Math.random() * 0xffffff);
+                        child.material.needsUpdate = true;
+                    }
+                }
+            }
+        });
+
+        scene.add(obj);
+    });
+
+    var controls = new function () {
+        this.rotationSpeed = 0.02;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.FirstPersonControls(camera, renderer.domElement);
+    control.activeLook = true;
+    control.autoForward = false;
+    control.constrainVertical = true;
+    control.enabled = true;
+    control.lookSpeed = 0.4;
+    control.movementSpeed = 20;
+    control.lookVertical = true;
+    control.verticalMin = 1.0;
+    control.verticalMax = 2.0;
+
+    let clock = new THREE.Clock();
+
+    function render() {
+        stats.update();
+
+        control.update(clock.getDelta());
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

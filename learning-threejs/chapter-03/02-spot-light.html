@@ -1,0 +1,190 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(-60, 60, 30);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({});
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    var scene = new THREE.Scene();
+
+    var axes = new THREE.AxesHelper(10);
+    scene.add(axes);
+
+    var ambientLight = new THREE.AmbientLight("#606008", 1);
+    scene.add(ambientLight);
+
+    var spotLight = new THREE.SpotLight(0xffffff, 1, 180, Math.PI / 4, 0);
+    spotLight.position.set(-30, 30, 10);
+    spotLight.shadow.mapSize.set(2048, 2048);
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+
+    let spotLightHelper = new THREE.SpotLightHelper(spotLight);
+    scene.add(spotLightHelper);
+
+    var planeGeometry = new THREE.PlaneGeometry(70, 50);
+    var planeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x9acd32
+    });
+    var planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    planeMesh.receiveShadow = true;
+    planeMesh.name = 'plane';
+    planeMesh.rotation.x = -0.5 * Math.PI;
+    planeMesh.position.x = 0;
+    planeMesh.position.y = 0;
+    planeMesh.position.z = 0;
+    scene.add(planeMesh);
+
+    var boxGeometry = new THREE.BoxGeometry(3, 3, 3);
+    var boxMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+    var boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+    boxMesh.castShadow = true;
+    boxMesh.receiveShadow = true;
+    boxMesh.position.x = -30;
+    boxMesh.position.y = 8;
+    boxMesh.position.z = 13;
+    scene.add(boxMesh);
+
+    var sphereGeometry = new THREE.SphereGeometry(3, 20, 20);
+    var sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x7777ff });
+    var sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphereMesh.castShadow = true;
+    sphereMesh.position.z = 0;
+    sphereMesh.position.x = 10;
+    sphereMesh.position.y = 5;
+    scene.add(sphereMesh);
+
+    var controls = new function () {
+        this.rotation = 0.05;
+        this.bouncingSpeed = 0.05;
+
+        this.ambientColor = ambientLight.color.getStyle();
+
+        this.intensity = spotLight.intensity;
+        this.angle = spotLight.angle;
+        this.spotColor = spotLight.color.getStyle();
+        this.penumbra = spotLight.penumbra;
+        this.distance = spotLight.distance;
+        this.castShadow = spotLight.castShadow;
+        this.target = 'Plane';
+
+        this.disableSpotLight = false;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.addColor(controls, 'ambientColor').onChange(function (e) {
+            ambientLight.color = new THREE.Color(controls.ambientColor);
+        });
+        gui.add(controls, 'intensity', 0, 3, 0.1).onChange(function (e) {
+            spotLight.intensity = controls.intensity;
+        })
+        gui.add(controls, 'angle', 0, Math.PI).onChange(function (e) {
+            spotLight.angle = controls.angle;
+        });
+        gui.addColor(controls, 'spotColor').onChange(function (e) {
+            spotLight.color = new THREE.Color(controls.spotColor);
+        });
+        gui.add(controls, 'penumbra', 0, 1).onChange(function (e) {
+            spotLight.penumbra = controls.penumbra;
+        })
+        gui.add(controls, 'distance', 0, 200).onChange(function (e) {
+            spotLight.distance = controls.distance;
+        });
+        gui.add(controls, 'castShadow').onChange(function (e) {
+            spotLight.castShadow = controls.castShadow;
+        });
+        gui.add(controls, 'target', { Plane: 'Plane', Sphere: 'Sphere', Box: 'Box' }).onChange(function (e) {
+            if (controls.target === 'Plane') {
+                spotLight.target = planeMesh;
+            }
+            else if (controls.target === 'Sphere') {
+                spotLight.target = sphereMesh;
+            }
+            else if (controls.target === 'Box') {
+                spotLight.target = boxMesh;
+            }
+        });
+        gui.add(controls, 'disableSpotLight').onChange(function (e) {
+            spotLight.visible = !e;
+        });
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    var step = 0;
+
+    function render() {
+        stats.update();
+        spotLightHelper.update();
+
+        boxMesh.rotation.x += controls.rotation;
+        boxMesh.rotation.y += controls.rotation;
+        boxMesh.rotation.z += controls.rotation;
+
+        spotLight.position.x = -30 + (10 * Math.cos(step));
+        spotLight.position.y = 30 + (20 * Math.cos(step));
+        spotLight.position.z = 10 + (20 * Math.cos(step));
+
+        step += controls.bouncingSpeed;
+        sphereMesh.position.x = 10 + (10 * Math.cos(step));
+        sphereMesh.position.y = 2 + (10 * Math.abs(Math.sin(step)));
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

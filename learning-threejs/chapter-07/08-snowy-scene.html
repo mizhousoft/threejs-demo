@@ -1,0 +1,229 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/TrackballControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(0, 0, 100);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    scene.add(ambientLight);
+
+    let count = 200;
+
+    function createPoints(name, texturePath) {
+        let vertices = [];
+        let colors = [];
+        let velocities = [];
+
+        for (let i = 0; i < count; ++i) {
+            let x = THREE.MathUtils.randFloatSpread(50);
+            let y = THREE.MathUtils.randFloatSpread(50);
+            let z = THREE.MathUtils.randFloatSpread(50);
+
+            vertices.push(x, y, x);
+
+            let r = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+            let g = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+            let b = new Number(THREE.MathUtils.randFloat(0, 1)).toFixed(1);
+
+            colors.push(r, g, b);
+
+            velocities.push(THREE.MathUtils.randFloat(0, 0.2), THREE.MathUtils.randFloat(0, 0.2), THREE.MathUtils.randFloat(0, 0.2));
+        }
+
+        let starGeometry = new THREE.BufferGeometry();
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const texture = new THREE.TextureLoader().load(texturePath);
+
+        let starMaterial = new THREE.PointsMaterial({
+            size: 9,
+            color: 0xffffff,
+            vertexColors: false,
+            transparent: false,
+            opacity: 0.8,
+            sizeAttenuation: true,
+            map: texture,
+            alphaMap: texture,
+            blending: THREE.AdditiveBlending,
+        });
+
+        let points = new THREE.Points(starGeometry, starMaterial);
+        points.velocities = velocities;
+        points.name = name;
+
+        scene.add(points);
+    }
+
+    createPoints('snowy1', '../assets/textures/particles/snowflake1_t.png');
+    createPoints('snowy2', '../assets/textures/particles/snowflake2_t.png');
+    createPoints('snowy3', '../assets/textures/particles/snowflake3_t.png');
+    createPoints('snowy4', '../assets/textures/particles/snowflake5_t.png');
+
+    var controls = new function () {
+        this.rotationSpeed = 0.02;
+
+        this.size = 5;
+        this.transparent = true;
+        this.opacity = 0.8;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+
+        gui.add(controls, 'size', 1, 10).onChange(function (e) {
+            scene.traverse(function (object3D) {
+                if (object3D.isPoints) {
+                    let points = object3D;
+
+                    points.material.size = controls.size;
+
+                    points.material.needsUpdate = true;
+                }
+            });
+        });
+        gui.add(controls, 'transparent').onChange(function (e) {
+            scene.traverse(function (object3D) {
+                if (object3D.isPoints) {
+                    let points = object3D;
+
+                    points.material.transparent = controls.transparent;
+
+                    points.material.needsUpdate = true;
+                }
+            });
+        });
+        gui.add(controls, 'opacity', 0, 1).onChange(function (e) {
+            scene.traverse(function (object3D) {
+                if (object3D.isPoints) {
+                    let points = object3D;
+
+                    points.material.opacity = controls.opacity;
+                    points.material.needsUpdate = true;
+                }
+            });
+        });
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.TrackballControls(camera, renderer.domElement);
+    // 是否开启当前的控制器 默认值为true
+    control.enabled = true;
+
+    // 设置当前控制器的焦点 默认为原点位置
+    control.target = new THREE.Vector3();
+
+    control.rotateSpeed = 3.0; //控制相机旋转速度
+    control.zoomSpeed = 1.2; //控制相机缩放速度
+    control.panSpeed = 0.3; //控制相机移动速度
+
+    control.noRotate = false; //关闭相机旋转 默认false
+    control.noZoom = false; //关闭相机缩放 默认false
+    control.noPan = false; //关闭相机移动 默认false
+
+    control.staticMoving = false; //关闭惯性拖拽 默认值false
+    control.dynamicDampingFactor = 0.2; //设置惯性拖拽的阻力 默认值是0.2
+
+    // 控制器控制相机可移动的距离焦点的最远距离和最近距离 默认值是0到无限远的距离
+    control.minDistance = 0;
+    control.maxDistance = Infinity;
+
+    let clock = new THREE.Clock();
+
+    function render() {
+        stats.update();
+
+        scene.traverse(function (object3D) {
+            if (object3D.isPoints) {
+                let points = object3D;
+
+                let positions = points.geometry.getAttribute('position');
+
+                for (let i = 0; i < count; ++i) {
+                    let indexx = i * 3 + 0;
+                    let indexy = i * 3 + 1;
+
+                    positions.array[indexx] = positions.array[indexx] - points.velocities[indexx];
+                    positions.array[indexy] = positions.array[indexy] - 0.3;
+
+                    if (positions.array[indexy] < -30) {
+                        positions.array[indexx] = THREE.MathUtils.randFloat(-20, 20);
+                        positions.array[indexy] = THREE.MathUtils.randFloat(20, 40);
+                    }
+
+                    if (positions.array[indexx] < -20 || positions.array[indexx] > 20) {
+                        points.velocities[indexx] = points.velocities[indexx] * -1;
+                    }
+                }
+                points.geometry.attributes.position.needsUpdate = true;
+            }
+        });
+
+        control.update(clock.getDelta());
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

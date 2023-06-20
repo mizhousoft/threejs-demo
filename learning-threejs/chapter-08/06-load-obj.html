@@ -1,0 +1,140 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/TrackballControls.js"></script>
+    <script src="../js/OBJLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(0, 0, 100);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    scene.add(ambientLight);
+
+    var spotLight = new THREE.SpotLight({ color: 0xffffff });
+    spotLight.position.x = 50;
+    spotLight.position.y = 180;
+    spotLight.position.z = 100;
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.set(2048, 2048);
+    spotLight.intensity = 0.8;
+    scene.add(spotLight);
+
+    const objLoader = new THREE.OBJLoader().load('../assets/models/pinecone/pinecone.obj', function (mesh) {
+        let material = new THREE.MeshLambertMaterial({
+            color: 0xff0000,
+        });
+
+        mesh.children.forEach(function (child) {
+            child.material = material;
+            child.geometry.computeVertexNormals();
+        });
+
+        mesh.scale.set(120, 120, 120);
+
+        console.log(mesh)
+
+        scene.add(mesh);
+    });
+
+    var controls = new function () {
+        this.rotationSpeed = 0.02;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.TrackballControls(camera, renderer.domElement);
+    // 是否开启当前的控制器 默认值为true
+    control.enabled = true;
+
+    // 设置当前控制器的焦点 默认为原点位置
+    control.target = new THREE.Vector3();
+
+    control.rotateSpeed = 3.0; //控制相机旋转速度
+    control.zoomSpeed = 1.2; //控制相机缩放速度
+    control.panSpeed = 0.3; //控制相机移动速度
+
+    control.noRotate = false; //关闭相机旋转 默认false
+    control.noZoom = false; //关闭相机缩放 默认false
+    control.noPan = false; //关闭相机移动 默认false
+
+    control.staticMoving = false; //关闭惯性拖拽 默认值false
+    control.dynamicDampingFactor = 0.2; //设置惯性拖拽的阻力 默认值是0.2
+
+    // 控制器控制相机可移动的距离焦点的最远距离和最近距离 默认值是0到无限远的距离
+    control.minDistance = 0;
+    control.maxDistance = Infinity;
+
+    let clock = new THREE.Clock();
+
+    function render() {
+        stats.update();
+
+        control.update(clock.getDelta());
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

@@ -1,0 +1,146 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <script src="../js/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(40, 60, 30);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+
+    var scene = new THREE.Scene();
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    ambientLight.position.y = 20;
+    ambientLight.position.z = 40;
+    scene.add(ambientLight);
+
+    var spotLight = new THREE.SpotLight({ color: 0xffffff });
+    spotLight.position.x = 50;
+    spotLight.position.y = 80;
+    spotLight.position.z = 10;
+    spotLight.castShadow = true;
+    spotLight.shadow.mapSize.set(2048, 2048);
+    spotLight.intensity = 0.6;
+    scene.add(spotLight);
+
+    let planeGeometry = new THREE.PlaneGeometry(10000, 10000);
+    let planeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    let planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    planeMesh.rotation.x = -0.5 * Math.PI;
+    planeMesh.receiveShadow = true;
+    scene.add(planeMesh);
+
+    let tileGeometry = new THREE.RingGeometry(4, 8);
+    let tileMaterial = new THREE.MeshNormalMaterial({});
+    tileMaterial.side = THREE.DoubleSide;
+    let tileMesh = new THREE.Mesh(tileGeometry, tileMaterial);
+    tileMesh.castShadow = true;
+    tileMesh.position.y = 20;
+    scene.add(tileMesh);
+
+    var controls = new function () {
+        this.rotationSpeed = 0.02;
+
+        this.color = planeMaterial.color.getStyle();
+
+        this.innerRadius = tileGeometry.parameters.innerRadius;
+        this.outerRadius = tileGeometry.parameters.outerRadius;
+        this.thetaSegments = tileGeometry.parameters.thetaSegments;
+        this.phiSegments = tileGeometry.parameters.phiSegments;
+    };
+
+    function renew() {
+        let geometry = new THREE.RingGeometry(controls.innerRadius, controls.outerRadius, controls.thetaSegments, controls.phiSegments);
+        tileMesh.geometry = geometry;
+    }
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.add(controls, 'rotationSpeed', 0, 0.1);
+
+        gui.add(controls, 'innerRadius', 2, 10, 1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'outerRadius', 5, 20, 1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'thetaSegments', 3, 20, 1).onChange(function (e) {
+            renew();
+        });
+
+        gui.add(controls, 'phiSegments', 1, 20, 1).onChange(function (e) {
+            renew();
+        });
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    let control = new THREE.OrbitControls(camera, renderer.domElement);
+
+    function render() {
+        stats.update();
+
+        tileMesh.rotation.x += controls.rotationSpeed;
+        tileMesh.rotation.y += controls.rotationSpeed;
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>

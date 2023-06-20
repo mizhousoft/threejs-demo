@@ -1,0 +1,204 @@
+<html>
+
+<head>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/dat.gui.js"></script>
+    <script src="../js/stats.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<script>
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = 0;
+        stats.domElement.style.top = 0;
+
+        document.body.appendChild(stats.domElement);
+
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var position = new THREE.Vector3(-60, 60, 30);
+    camera.position.copy(position);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var renderer = new THREE.WebGLRenderer({});
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMapSoft = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.setClearColor(new THREE.Color(0x000000));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    var scene = new THREE.Scene();
+
+    var axes = new THREE.AxesHelper(10);
+    scene.add(axes);
+
+    var ambientLight = new THREE.AmbientLight("#0c0c0c", 1);
+    scene.add(ambientLight);
+
+    var pointLight = new THREE.PointLight(0xff0000, 1, 100);
+    pointLight.position.y = 5;
+    pointLight.castShadow = true;
+    scene.add(pointLight);
+
+    let planeGeometry = new THREE.BoxGeometry(70, 2, 50);
+    let planeMaterial = new THREE.MeshPhongMaterial({
+        color: 0xa0522d,
+    });
+    let plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.position.y = -1;
+    plane.position.x = 0;
+    plane.receiveShadow = true;
+    scene.add(plane);
+
+    let leftGeometry = new THREE.BoxGeometry(70, 2, 2);
+    let leftMaterial = new THREE.MeshPhongMaterial({
+        color: 0xa0522d,
+    });
+    let leftWall = new THREE.Mesh(leftGeometry, leftMaterial);
+    leftWall.position.z = -24;
+    leftWall.position.y = 1;
+    scene.add(leftWall);
+
+    let rightGeometry = new THREE.BoxGeometry(70, 2, 2);
+    let rightWall = new THREE.Mesh(rightGeometry, leftMaterial);
+    rightWall.position.z = 24;
+    rightWall.position.y = 1;
+    scene.add(rightWall);
+
+    let topGeometry = new THREE.BoxGeometry(2, 2, 50);
+    let topWall = new THREE.Mesh(topGeometry, leftMaterial);
+    topWall.position.x = 34;
+    topWall.position.y = 1;
+    scene.add(topWall);
+
+    let bottomGeometry = new THREE.BoxGeometry(2, 2, 50);
+    let bottomWall = new THREE.Mesh(bottomGeometry, leftMaterial);
+    bottomWall.position.x = -34;
+    bottomWall.position.y = 1;
+    scene.add(bottomWall);
+
+    let treeBottomGeometry = new THREE.CylinderGeometry(1, 1, 10, 32, 32, 32);
+    let treeBottom = new THREE.Mesh(treeBottomGeometry, leftMaterial);
+    treeBottom.position.copy(new THREE.Vector3(-20, 5, 4));
+    treeBottom.castShadow = true;
+    treeBottom.receiveShadow = true;
+    scene.add(treeBottom);
+
+    let treeSphereGeometry = new THREE.SphereGeometry(4, 16);
+    let treeSphere = new THREE.Mesh(treeSphereGeometry, leftMaterial);
+    treeSphere.position.copy(new THREE.Vector3(-20, 10, 4));
+    treeSphere.castShadow = true;
+    treeSphere.receiveShadow = true;
+    scene.add(treeSphere);
+
+    let hourseBaseGeometry = new THREE.CylinderGeometry(5, 5, 6);
+    let hourseBase = new THREE.Mesh(hourseBaseGeometry, leftMaterial);
+    hourseBase.position.copy(new THREE.Vector3(10, 5, 4));
+    hourseBase.castShadow = true;
+    hourseBase.receiveShadow = true;
+    scene.add(hourseBase);
+
+    let hoursrRootGeometry = new THREE.ConeGeometry(5, 4);
+    let hourseRoot = new THREE.Mesh(hoursrRootGeometry, leftMaterial);
+    hourseRoot.position.copy(new THREE.Vector3(10, 10, 4));
+    hourseRoot.castShadow = true;
+    hourseRoot.receiveShadow = true;
+    scene.add(hourseRoot);
+
+    let sphereGeometry = new THREE.SphereGeometry(1);
+    let sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xac6c25,
+    });
+    let sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.copy(new THREE.Vector3(3, 5, 5));
+    scene.add(sphere);
+
+    var controls = new function () {
+        this.rotationSpeed = 0.01;
+
+        this.ambientColor = ambientLight.color.getStyle();
+        this.pointColor = pointLight.color.getStyle();
+        this.distance = pointLight.distance;
+        this.intensity = pointLight.intensity;
+    };
+
+    function addGuis() {
+        var gui = new dat.GUI();
+
+        gui.addColor(controls, 'ambientColor').onChange(function (e) {
+            ambientLight.color = new THREE.Color(controls.ambientColor);
+        });
+
+        gui.addColor(controls, 'pointColor').onChange(function (e) {
+            pointLight.color = new THREE.Color(controls.pointColor);
+        })
+
+        gui.add(controls, 'distance', 0, 200).onChange(function (e) {
+            pointLight.distance = controls.distance;
+        });
+
+        gui.add(controls, 'intensity', 0, 2).onChange(function (e) {
+            pointLight.intensity = controls.intensity;
+        });
+    }
+    addGuis();
+
+    document.body.appendChild(renderer.domElement);
+
+    var invert = 1;
+    var phase = 0;
+
+    function render() {
+        stats.update();
+
+        pointLight.position.copy(sphere.position);
+
+        if (phase > 2 * Math.PI) {
+            invert = invert * -1;
+            phase -= 2 * Math.PI;
+        } else {
+            phase += controls.rotationSpeed;
+        }
+        sphere.position.z = +(25 * (Math.sin(phase)));
+        sphere.position.x = +(15 * (Math.cos(phase)));
+        sphere.position.y = 5;
+
+        if (invert < 0) {
+            var pivot = 14;
+            sphere.position.x = (invert * (sphere.position.x - pivot)) + pivot;
+        }
+
+        requestAnimationFrame(render);
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = render();
+    window.addEventListener('resize', onWindowResize, false);
+</script>
+
+</html>
